@@ -14,12 +14,8 @@ module.exports = async function (context) {
     const databases = new sdk.Databases(client);
 
     try {
-        context.log("📡 Connecting to BigWin API...");
+        context.log("📡 Fetching Game Data...");
 
-        // သင့်ဆီကရတဲ့ Payload အတိုင်း တိတိကျကျ လှမ်းခေါ်ခြင်း
-        // Note: အကယ်၍ Signature က အမြဲပြောင်းနေရမယ်ဆိုရင် Login မရနိုင်ပါ။ 
-        // ဒါက လက်ရှိရထားတဲ့ Token နဲ့ တိုက်ရိုက် Data ဆွဲကြည့်တဲ့ နည်းလမ်းပါ
-        
         const targetUrl = "https://api.bigwinqaz.com/api/webapi/GetNoaverageEmerdList";
         const headers = {
             "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOiIxNzczMjAyNTExIiwibmJmIjoiMTc3MzIwMjUxMSIsImV4cCI6IjE3NzMyMDQzMTEiLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL2V4cGlyYXRpb24iOiIzLzExLzIwMjYgMTE6MTU6MTEgQU0iLCJodHRwOi8vc2NoZW1hcy5taWNyb3NvZnQuY29tL3dzLzIwMDgvMDYvaWRlbnRpdHkvY2xhaW1zL3JvbGUiOiJBY2Nlc3NfVG9rZW4iLCJVc2VySWQiOiI1MzQ4MDMiLCJVc2VyTmFtZSI6Ijk1OTY5OTcxNjMzNSIsIlVzZXJQaG90byI6IjUiLCJOaWNrTmFtZSI6Ik1lbWJlck5OR0JXQUNQIiwiQW1vdW50IjoiMS40MiIsIkludGVncmFsIjoiMCIsIkxvZ2luTWFyayI6Ikg1IiwiTG9naW5UaW1lIjoiMy8xMS8yMDI2IDEwOjQ1OjExIEFNIiwiTG9naW5JUEFkZHJlc3MiOiI2OS4xNjAuMjguMjE5IiwiRGJOdW1iZXIiOiIwIiwiSXN2YWxpZGF0b3IiOiIwIiwiS2V5Q29kZSI6IjI5NyIsIlRva2VuVHlwZSI6IkFjY2Vzc19Ub2tlbiIsIlBob25lVHlwZSI6IjEiLCJVc2VyVHlwZSI6IjAiLCJVc2VyTmFtZTIiOiIiLCJpc3MiOiJqd3RJc3N1ZXIiLCJhdWQiOiJsb3R0ZXJ5VGlja2V0In0.eBpS5HR-Lzw-CnCGJ5fA5F9v-3BpYeL2WrE43K4sFbk",
@@ -31,7 +27,7 @@ module.exports = async function (context) {
         const body = {
             "pageSize": 10,
             "pageNo": 1,
-            "typeId": 30, // Win Go 30s ဖြစ်နိုင်ပါတယ်
+            "typeId": 30,
             "language": 7,
             "random": "475983426d29479eacb0b286eeee7578",
             "signature": "BA04343249334526E7A96C8E632E3E01",
@@ -55,18 +51,16 @@ module.exports = async function (context) {
                     period: period,
                     result: result
                 });
-                context.log(`✅ Success: ${period} -> ${result}`);
+                context.log(`✅ Success: Period ${period}`);
             } else {
                 context.log(`ℹ️ Already exists: ${period}`);
             }
-            return context.res.json({ success: true, period });
-        } else {
-            context.error("❌ Data structure mismatch: " + JSON.stringify(response.data));
-            return context.res.json({ error: "Invalid Data" }, 500);
         }
+        
+        return context.res.send("OK"); // အရိုးရှင်းဆုံး response ပြန်မယ်
 
     } catch (err) {
-        context.error("❌ API Error: " + err.message);
-        return context.res.json({ error: err.message }, 500);
+        context.error("❌ Error: " + err.message);
+        return context.res.send("Error: " + err.message, 500);
     }
 };
