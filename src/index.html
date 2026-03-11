@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Win Go AI PRO - RGB Edition</title>
+    <script src="https://cdn.jsdelivr.net/npm/appwrite@13.0.1"></script>
+    <style>
+        :root {
+            --bg: #050505;
+            --neon-red: #ff3f34;
+            --neon-blue: #0fbcf9;
+            --neon-green: #05c46b;
+            --card-bg: rgba(20, 20, 20, 0.95);
+        }
+
+        body {
+            background: linear-gradient(-45deg, #050505, #1a1a1a, #0a0a0a, #000000);
+            background-size: 400% 400%;
+            animation: gradientAnim 15s ease infinite;
+            color: white;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        @keyframes gradientAnim {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .container {
+            width: 340px;
+            background: var(--card-bg);
+            border-radius: 40px;
+            padding: 30px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            font-size: 10px;
+            letter-spacing: 4px;
+            color: var(--neon-green);
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            opacity: 0.8;
+        }
+
+        .timer-box {
+            margin-bottom: 10px;
+        }
+
+        .countdown {
+            font-size: 50px;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+        }
+
+        .period-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: -5px;
+        }
+
+        /* RGB Prediction Display */
+        .prediction-wrapper {
+            position: relative;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 25px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.05);
+            overflow: hidden;
+        }
+
+        .prediction-wrapper::before {
+            content: '';
+            position: absolute;
+            top: -2px; left: -2px; right: -2px; bottom: -2px;
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-blue), var(--neon-green));
+            z-index: -1;
+            filter: blur(10px);
+            opacity: 0.3;
+            animation: rgbFlow 3s linear infinite;
+        }
+
+        @keyframes rgbFlow {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        .prediction-text {
+            font-size: 70px;
+            font-weight: 900;
+            transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .BIG { color: var(--neon-red); text-shadow: 0 0 30px var(--neon-red); }
+        .SMALL { color: var(--neon-blue); text-shadow: 0 0 30px var(--neon-blue); }
+        .WAIT { color: #333; }
+
+        .history-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .dot {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: 0.3s;
+        }
+
+        .dot.B { background: var(--neon-red); box-shadow: 0 0 10px rgba(255, 63, 52, 0.4); }
+        .dot.S { background: var(--neon-blue); box-shadow: 0 0 10px rgba(15, 188, 249, 0.4); }
+
+        .controls {
+            margin-top: 30px;
+        }
+
+        .btn-voice {
+            width: 100%;
+            padding: 15px;
+            background: transparent;
+            border: 1px solid #333;
+            color: #666;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 12px;
+            transition: 0.3s;
+        }
+
+        .btn-voice.active {
+            border-color: var(--neon-green);
+            color: var(--neon-green);
+            box-shadow: 0 0 15px rgba(5, 196, 107, 0.2);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">Neural RGB Predictor</div>
+    
+    <div class="timer-box">
+        <div id="countdown" class="countdown">00:30</div>
+        <div class="period-label">PERIOD: <span id="gamePeriod" style="color:#aaa">--------</span></div>
+    </div>
+
+    <div class="prediction-wrapper">
+        <div id="display" class="prediction-text WAIT">WAIT</div>
+    </div>
+
+    <div style="font-size: 10px; color: #444; letter-spacing: 2px;">RECENT RESULTS</div>
+    <div id="history" class="history-container"></div>
+
+    <div class="controls">
+        <button id="voiceBtn" class="btn-voice" onclick="toggleVoice()">🔊 ENABLE AI VOICE</button>
+    </div>
+</div>
+
+<script>
+    // --- Appwrite Setup ---
+    const client = new Appwrite.Client()
+        .setEndpoint('https://sgp.cloud.appwrite.io/v1')
+        .setProject('69a1b2b00003cb4311d0');
+
+    const databases = new Appwrite.Databases(client);
+    const DB_ID = '69a1b4790006d6ec0eae';
+    const COLL_ID = 'user_images';
+
+    let isVoiceEnabled = false;
+    let lastKnownPeriod = "";
+
+    // Timer Logic for Win Go 30s
+    function updateEngine() {
+        const now = new Date();
+        const seconds = now.getSeconds();
+        const rem = 30 - (seconds % 30);
+        
+        // Generate Period Number like Game
+        const dateStr = now.getFullYear().toString() + 
+                        (now.getMonth() + 1).toString().padStart(2, '0') + 
+                        now.getDate().toString().padStart(2, '0');
+        const total30s = Math.floor((now.getHours() * 3600 + now.getMinutes() * 60 + seconds) / 30);
+        const currentPeriod = dateStr + "1000" + total30s;
+
+        document.getElementById('gamePeriod').innerText = currentPeriod;
+        document.getElementById('countdown').innerText = `00:${rem < 10 ? '0' : ''}${rem}`;
+
+        // Fetch new prediction when 25 seconds remain
+        if (rem === 25) {
+            syncWithAppwrite();
+        }
+    }
+
+    async function syncWithAppwrite() {
+        try {
+            const res = await databases.listDocuments(DB_ID, COLL_ID, [
+                Appwrite.Query.orderDesc('$createdAt'),
+                Appwrite.Query.limit(6)
+            ]);
+
+            if (res.documents.length > 0) {
+                const latest = res.documents[0];
+                const prediction = latest.result === "B" ? "SMALL" : "BIG";
+
+                if (latest.period !== lastKnownPeriod) {
+                    updateUI(prediction, res.documents);
+                    lastKnownPeriod = latest.period;
+                }
+            }
+        } catch (err) {
+            console.log("Appwrite Error:", err);
+        }
+    }
+
+    function updateUI(pred, history) {
+        const display = document.getElementById('display');
+        display.innerText = pred;
+        display.className = "prediction-text " + pred;
+
+        if (isVoiceEnabled) {
+            window.speechSynthesis.cancel();
+            const msg = new SpeechSynthesisUtterance("Next is " + pred);
+            window.speechSynthesis.speak(msg);
+        }
+
+        // Update History Dots
+        const historyBox = document.getElementById('history');
+        historyBox.innerHTML = history.map(doc => 
+            `<div class="dot ${doc.result}">${doc.result}</div>`
+        ).join("");
+    }
+
+    function toggleVoice() {
+        isVoiceEnabled = !isVoiceEnabled;
+        const btn = document.getElementById('voiceBtn');
+        btn.classList.toggle('active');
+        btn.innerText = isVoiceEnabled ? "🔈 AI VOICE ACTIVE" : "🔊 ENABLE AI VOICE";
+    }
+
+    // Initialize
+    setInterval(updateEngine, 1000);
+    syncWithAppwrite();
+</script>
+
+</body>
+</html>
